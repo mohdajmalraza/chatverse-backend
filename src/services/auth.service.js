@@ -76,5 +76,5 @@ export const getUserProfile = async (userId) => {
     throw new ApiError(404, "User not found");
   }
 
-  return user;
+  return { user: buildUserResponse(user) };
 };

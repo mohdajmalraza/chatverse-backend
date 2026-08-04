@@ -3,8 +3,9 @@ import {
   loginUser,
   getUserProfile,
 } from "../services/auth.service.js";
-import asyncHandler from "../utils/asyncHandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import { cookieOptions } from "../utils/cookieOptions.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 /**
  * @route   POST /api/auth/register
@@ -15,15 +16,19 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    const data = await registerUser({
+    const { user, token } = await registerUser({
       name,
       email,
       password,
     });
 
-    return res
-      .status(201)
-      .json(new ApiResponse(201, "User registered successfully", data));
+    res.cookie("token", token, cookieOptions);
+
+    return res.status(201).json(
+      new ApiResponse(201, "User registered successfully", {
+        user,
+      }),
+    );
   } catch (error) {
     next(error);
   }
@@ -52,14 +57,18 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const data = await loginUser({
+    const { user, token } = await loginUser({
       email,
       password,
     });
 
-    return res
-      .status(200)
-      .json(new ApiResponse(200, "Login successfull", data));
+    res.cookie("token", token, cookieOptions);
+
+    return res.status(200).json(
+      new ApiResponse(200, "Login successful", {
+        user,
+      }),
+    );
   } catch (error) {
     next(error);
   }
@@ -75,6 +84,12 @@ export const login = async (req, res, next) => {
 
 //   return res.status(200).json(new ApiResponse(200, "Login successful", data));
 // });
+
+export const logout = (req, res) => {
+  res.clearCookie("token");
+
+  return res.status(200).json(new ApiResponse(200, "Logged out successfully"));
+};
 
 /**
  * @route   GET /api/auth/profile

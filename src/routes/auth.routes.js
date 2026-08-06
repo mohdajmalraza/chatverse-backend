@@ -1,14 +1,14 @@
 import express from "express";
 
+import protect from "../middleware/auth.middleware.js";
+import validate from "../middleware/validation.middleware.js";
+
 import {
   register,
   login,
   profile,
   logout,
 } from "../controllers/auth.controller.js";
-
-import protect from "../middleware/auth.middleware.js";
-import validate from "../middleware/validation.middleware.js";
 
 import {
   validateRegister,

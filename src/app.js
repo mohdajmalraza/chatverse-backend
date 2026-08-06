@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/auth.routes.js";
 import conversationRoutes from "./routes/conversation.routes.js";
+import messageRoutes from "./routes/message.routes.js";
 
 import errorHandler from "./middleware/error.middleware.js";
 
@@ -21,6 +22,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/v1/conversations", conversationRoutes);
+app.use("/api/v1/messages", messageRoutes);
 
 app.use(errorHandler);
 

@@ -35,3 +35,27 @@ export const createMessage = async (senderId, conversationId, text) => {
 
   return message;
 };
+
+export const findMessageHistory = async (userId, conversationId) => {
+  const conversation = await Conversation.findById(conversationId);
+
+  if (!conversation) {
+    throw new ApiError(404, "Conversation not found.");
+  }
+
+  const isParticipant = conversation.participants.some(
+    (participant) => participant.toString() === userId.toString(),
+  );
+
+  if (!isParticipant) {
+    throw new ApiError(403, "You are not a participant in this conversation.");
+  }
+
+  const messages = await Message.find({
+    conversation: conversationId,
+  })
+    .populate("sender", "-password")
+    .sort({ createdAt: 1 });
+
+  return messages;
+};

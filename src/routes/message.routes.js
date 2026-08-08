@@ -15,8 +15,10 @@ import {
 
 const router = express.Router();
 
+// Send Message API
 router.post("/", protect, validate(sendMessageValidation), sendMessage);
 
+// Get Message History
 router.get(
   "/:conversationId",
   protect,

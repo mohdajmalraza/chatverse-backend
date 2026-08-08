@@ -2,6 +2,8 @@ import User from "../models/User.js";
 import Conversation from "../models/Conversation.js";
 import ApiError from "../utils/ApiError.js";
 
+import { formatConversation } from "../utils/conversation.utils.js";
+
 export const createOrGetConversation = async (userId, receiverId) => {
   // User cannot chat with themselves
   if (userId.toString() === receiverId) {
@@ -40,4 +42,17 @@ export const createOrGetConversation = async (userId, receiverId) => {
     conversation,
     isNew: true,
   };
+};
+
+export const findUserConversations = async (userId) => {
+  const conversations = await Conversation.find({
+    participants: userId,
+  })
+    .populate("participants", "-password")
+    .populate("lastMessage")
+    .sort({ updatedAt: -1 });
+
+  return conversations.map((conversation) => {
+    formatConversation(conversation, userId);
+  });
 };

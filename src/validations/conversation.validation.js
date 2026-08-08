@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 import ApiError from "../utils/ApiError.js";
 
-export const createConversationValidation = ({ receiverId }) => {
+export const createConversationValidation = (req) => {
+  const { receiverId } = req.body;
+
   // Check receiverId is provided
   if (!receiverId) {
     throw new ApiError(400, "Receiver Id is required.");

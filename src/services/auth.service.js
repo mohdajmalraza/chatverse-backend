@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import ApiError from "../utils/ApiError.js";
-import { buildUserResponse } from "../utils/userResponse.js";
+import { buildUserResponse } from "../utils/user.utils.js";
 
 /**
  * Register a new user

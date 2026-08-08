@@ -1,6 +1,8 @@
 import ApiError from "../utils/ApiError.js";
 
-export const validateRegister = ({ name, email, password }) => {
+export const validateRegister = (req) => {
+  const { name, email, password } = req.body;
+
   if (!name?.trim()) {
     throw new ApiError(400, "Name is required");
   }
@@ -24,7 +26,9 @@ export const validateRegister = ({ name, email, password }) => {
   }
 };
 
-export const validateLogin = ({ email, password }) => {
+export const validateLogin = (req) => {
+  const { email, password } = req.body;
+
   if (!email?.trim()) {
     throw new ApiError(400, "Email is required");
   }

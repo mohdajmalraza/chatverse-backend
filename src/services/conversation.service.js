@@ -26,7 +26,7 @@ export const createOrGetConversation = async (userId, receiverId) => {
 
   if (existingConversation) {
     return {
-      conversation: existingConversation,
+      conversation: formatConversation(existingConversation, userId),
       isNew: false,
     };
   }
@@ -39,7 +39,7 @@ export const createOrGetConversation = async (userId, receiverId) => {
   await conversation.populate("participants", "-password");
 
   return {
-    conversation,
+    conversation: formatConversation(conversation, userId),
     isNew: true,
   };
 };
@@ -52,7 +52,7 @@ export const findUserConversations = async (userId) => {
     .populate("lastMessage")
     .sort({ updatedAt: -1 });
 
-  return conversations.map((conversation) => {
-    formatConversation(conversation, userId);
-  });
+  return conversations.map((conversation) =>
+    formatConversation(conversation, userId),
+  );
 };

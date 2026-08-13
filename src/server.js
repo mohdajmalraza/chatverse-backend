@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
 import app from "./app.js";
+import { socketAuthMiddleware } from "./middleware/socket.middleware.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
@@ -21,12 +22,14 @@ const io = new Server(server, {
   },
 });
 
+io.use(socketAuthMiddleware);
+
 // Socket.IO connection
 io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+  console.log("Authenticated socket connected:", socket.user.id);
 
   socket.on("disconnect", () => {
-    console.log(`Socket disconnected: ${socket.id}`);
+    console.log("Socket disconnected:", socket.user.id);
   });
 });
 

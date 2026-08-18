@@ -5,7 +5,6 @@ import {
 } from "../services/auth.service.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { cookieOptions } from "../utils/cookieOptions.js";
-import asyncHandler from "../utils/asyncHandler.js";
 
 /**
  * @route   POST /api/auth/register

@@ -1,7 +1,7 @@
 import Conversation from "../models/Conversation.js";
 
 import { createMessage } from "../services/message.service.js";
-import { getUserSocketId } from "./onlineUsers.js";
+import { getUserSocketIds } from "./onlineUsers.js";
 
 export const registerMessageHandlers = (io, socket) => {
   socket.on("send_message", async ({ conversationId, text }) => {
@@ -38,16 +38,18 @@ export const registerMessageHandlers = (io, socket) => {
       // Confirm message to sender
       socket.emit("message_sent", message);
 
-      // Find receiver's socket
-      const receiverSocketId = getUserSocketId(receiverId);
+      // Find receiver's sockets
+      const receiverSocketIds = getUserSocketIds(receiverId);
 
       // Receiver is offline
-      if (!receiverSocketId) {
+      if (receiverSocketIds.size === 0) {
         return;
       }
 
-      // Send message to receiver
-      io.to(receiverSocketId).emit("receive_message", message);
+      // Send message to all receiver's active connections
+      receiverSocketIds.forEach((socketId) => {
+        io.to(socketId).emit("receive_message", message);
+      });
     } catch (error) {
       console.error("Socket send_message error:", error);
 

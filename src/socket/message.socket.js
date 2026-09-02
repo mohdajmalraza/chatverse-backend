@@ -1,19 +1,18 @@
 import Conversation from "../models/Conversation.js";
 
 import { createMessage } from "../services/message.service.js";
-import { getUserSocketIds } from "./onlineUsers.js";
+import { emitToUser, getReceiverId } from "./socket.utils.js";
 
 export const registerMessageHandlers = (io, socket) => {
+  // Send message
   socket.on("send_message", async ({ conversationId, text }) => {
     try {
-      // Basic validation
       if (!conversationId || !text?.trim()) {
         return socket.emit("message_error", {
           message: "Conversation ID and message text are required.",
         });
       }
 
-      // Find conversation
       const conversation = await Conversation.findById(conversationId);
 
       if (!conversation) {
@@ -23,9 +22,7 @@ export const registerMessageHandlers = (io, socket) => {
       }
 
       // Find the other participant
-      const receiverId = conversation.participants.find(
-        (participant) => participant.toString() !== socket.user.id.toString(),
-      );
+      const receiverId = getReceiverId(conversation, socket.user.id);
 
       if (!receiverId) {
         return socket.emit("message_error", {
@@ -38,24 +35,70 @@ export const registerMessageHandlers = (io, socket) => {
       // Confirm message to sender
       socket.emit("message_sent", message);
 
-      // Find receiver's sockets
-      const receiverSocketIds = getUserSocketIds(receiverId);
-
-      // Receiver is offline
-      if (receiverSocketIds.size === 0) {
-        return;
-      }
-
-      // Send message to all receiver's active connections
-      receiverSocketIds.forEach((socketId) => {
-        io.to(socketId).emit("receive_message", message);
-      });
+      // Send message too receiver's active sockets
+      emitToUser(io, receiverId, "receive_message", message);
     } catch (error) {
       console.error("Socket send_message error:", error);
 
       socket.emit("message_error", {
         message: error.message || "Failed to send message.",
       });
+    }
+  });
+
+  // Typing started
+  socket.on("typing:start", async ({ conversationId }) => {
+    try {
+      if (!conversationId) {
+        return;
+      }
+
+      const conversation = await Conversation.findById(conversationId);
+
+      if (!conversation) {
+        return;
+      }
+
+      const receiverId = getReceiverId(conversation, socket.user.id);
+
+      if (!receiverId) {
+        return;
+      }
+
+      emitToUser(io, receiverId, "typing:start", {
+        conversationId,
+        userId: socket.user.id,
+      });
+    } catch (error) {
+      console.error("Socket typing:start error:", error);
+    }
+  });
+
+  // Typing stopped
+  socket.on("typing:stop", async ({ conversationId }) => {
+    try {
+      if (!conversationId) {
+        return;
+      }
+
+      const conversation = await Conversation.findById(conversationId);
+
+      if (!conversation) {
+        return;
+      }
+
+      const receiverId = getReceiverId(conversation, socket.user.id);
+
+      if (!receiverId) {
+        return;
+      }
+
+      emitToUser(io, receiverId, "typing:stop", {
+        conversationId,
+        userId: socket.user.id,
+      });
+    } catch (error) {
+      console.error("Socket typing:stop error:", error);
     }
   });
 };

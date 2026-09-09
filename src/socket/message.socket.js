@@ -1,19 +1,18 @@
 import Conversation from "../models/Conversation.js";
 
 import { createMessage } from "../services/message.service.js";
-import { getUserSocketIds } from "./onlineUsers.js";
+import { getReceiverId } from "./socket.utils.js";
 
 export const registerMessageHandlers = (io, socket) => {
+  // Send message
   socket.on("send_message", async ({ conversationId, text }) => {
     try {
-      // Basic validation
       if (!conversationId || !text?.trim()) {
         return socket.emit("message_error", {
           message: "Conversation ID and message text are required.",
         });
       }
 
-      // Find conversation
       const conversation = await Conversation.findById(conversationId);
 
       if (!conversation) {
@@ -22,10 +21,19 @@ export const registerMessageHandlers = (io, socket) => {
         });
       }
 
-      // Find the other participant
-      const receiverId = conversation.participants.find(
-        (participant) => participant.toString() !== socket.user.id.toString(),
+      // Verify sender belongs to conversation
+      const isParticipant = conversation.participants.some(
+        (participant) => participant.toString() === socket.user.id.toString(),
       );
+
+      if (!isParticipant) {
+        return socket.emit("message_error", {
+          message: "You are not a participant of this conversation.",
+        });
+      }
+
+      // Find the other participant
+      const receiverId = getReceiverId(conversation, socket.user.id);
 
       if (!receiverId) {
         return socket.emit("message_error", {
@@ -38,18 +46,10 @@ export const registerMessageHandlers = (io, socket) => {
       // Confirm message to sender
       socket.emit("message_sent", message);
 
-      // Find receiver's sockets
-      const receiverSocketIds = getUserSocketIds(receiverId);
-
-      // Receiver is offline
-      if (receiverSocketIds.size === 0) {
-        return;
-      }
-
-      // Send message to all receiver's active connections
-      receiverSocketIds.forEach((socketId) => {
-        io.to(socketId).emit("receive_message", message);
-      });
+      // Send message to everyone else inside this conversation room
+      socket
+        .to(`conversation:${conversationId}`)
+        .emit("receive_message", message);
     } catch (error) {
       console.error("Socket send_message error:", error);
 
@@ -58,4 +58,87 @@ export const registerMessageHandlers = (io, socket) => {
       });
     }
   });
+
+  // Typing started
+  socket.on("typing:start", ({ conversationId }) => {
+    if (!conversationId) {
+      return;
+    }
+
+    socket
+      .to(`conversation:${conversationId}`)
+      .emit("typing:start", { conversationId, userId: socket.user.id });
+  });
+
+  // Typing stopped
+  socket.on("typing:stop", ({ conversationId }) => {
+    if (!conversationId) {
+      return;
+    }
+
+    socket.to(`conversation:${conversationId}`).emit("typing:stop", {
+      conversationId,
+      userId: socket.user.id,
+    });
+  });
+
+  // Typing started
+  // socket.on("typing:start", async ({ conversationId }) => {
+  //   try {
+  //     if (!conversationId) {
+  //       return;
+  //     }
+
+  //     const conversation = await Conversation.findById(conversationId);
+
+  //     if (!conversation) {
+  //       return;
+  //     }
+
+  //     const isParticipant = conversation.participants.some(
+  //       (participant) => participant.toString() === socket.user.id.toString(),
+  //     );
+
+  //     if (!isParticipant) {
+  //       return;
+  //     }
+
+  //     socket.to(`conversation:${conversationId}`).emit("typing:start", {
+  //       conversationId,
+  //       userId: socket.user.id,
+  //     });
+  //   } catch (error) {
+  //     console.error("Socket typing:start error:", error);
+  //   }
+  // });
+
+  // Typing stopped
+  // socket.on("typing:stop", async ({ conversationId }) => {
+  //   try {
+  //     if (!conversationId) {
+  //       return;
+  //     }
+
+  //     const conversation = await Conversation.findById(conversationId);
+
+  //     if (!conversation) {
+  //       return;
+  //     }
+
+  //     const isParticipant = conversation.participants.some(
+  //       (participant) => participant.toString() === socket.user.id.toString(),
+  //     );
+
+  //     if (!isParticipant) {
+  //       return;
+  //     }
+
+  //     socket.to(`conversation:${conversationId}`).emit("typing:stop", {
+  //       conversationId,
+  //       userId: socket.user.id,
+  //     });
+  //   } catch (error) {
+  //     console.error("Socket typing:stop error:", error);
+  //   }
+  // });
 };
